@@ -2,8 +2,17 @@
 
 namespace QuaRCSharp.Canvas;
 
+/// <summary>
+/// A canvas with applied mask to it
+/// </summary>
 public class MaskedQRCanvas : QRCanvas
 {
+    /// <summary>
+    /// Creates a copy of a canvas with applied mask to it
+    /// </summary>
+    /// <param name="canvas">Canvas to apply mask to</param>
+    /// <param name="mask">Mask to apply to</param>
+    /// <exception cref="ArgumentException">Thrown if provided canvas already masked</exception>
     public MaskedQRCanvas(QRCanvas canvas, Mask mask) : base(canvas.Data)
     {
         if (canvas.Mask.Number is not MaskNumber.Unmasked)

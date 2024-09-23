@@ -2,6 +2,9 @@
 
 namespace QuaRCSharp.Data.Encoding;
 
+/// <summary>
+/// Data encoder for encoding with UTF-8 bytes
+/// </summary>
 public class ByteEncoder : IEncodingMethod
 {
     public BitStream Encode(string input)

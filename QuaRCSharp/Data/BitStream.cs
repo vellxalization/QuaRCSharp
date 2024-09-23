@@ -1,13 +1,26 @@
 ﻿namespace QuaRCSharp.Data;
 
+/// <summary>
+/// Class for storing data as a bit sequence
+/// </summary>
 public class BitStream
 {
     private List<byte> _stream = [0, 0];
     private int _capacity = 8 * 2;
     
+    /// <summary>
+    /// Length of the stream
+    /// </summary>
     public int Length { get; private set; }
+    /// <summary>
+    /// Zero-based position of the pointer
+    /// </summary>
     public int Pointer { get; set; }
 
+    /// <summary>
+    /// Writes data bit at the pointer position
+    /// </summary>
+    /// <param name="bit">Single bit</param>
     public void WriteBit(bool bit)
     {
         if (bit)
@@ -19,12 +32,20 @@ public class BitStream
         MoveForward(1);
     }
 
+    /// <summary>
+    /// Writes an array of single data bits at the pointer position
+    /// </summary>
+    /// <param name="bits">Array of bits</param>
     public void WriteBits(bool[] bits)
     {
         foreach(bool bit in bits)
         { WriteBit(bit); }
     }
     
+    /// <summary>
+    /// Writes a byte at the pointer position
+    /// </summary>
+    /// <param name="value">Byte to write</param>
     public void WriteByte(byte value)
     {
         var divRem = Math.DivRem(Pointer, 8);
@@ -42,19 +63,28 @@ public class BitStream
         _stream[divRem.Quotient] |= (byte)((value & mask) >> divRem.Remainder);
         MoveForward(8 - divRem.Remainder);
 
-        // write remaining 8 - n bits of value to the next byte
+        // write remaining (8 - n) bits of value to the next byte
         mask = 0b_1111_1111;
         mask >>= 8 - divRem.Remainder;
         _stream[divRem.Quotient + 1] |= (byte)((value & mask) << (8 - divRem.Remainder));
         MoveForward(divRem.Remainder);
     }
     
+    /// <summary>
+    /// Writes an array of bytes at the pointer position
+    /// </summary>
+    /// <param name="bytes">Array of bytes</param>
     public void WriteBytes(byte[] bytes)
     {
         foreach(byte @byte in bytes)
         { WriteByte(@byte); }
     }
     
+    /// <summary>
+    /// Reads a single bit of data at the pointer position
+    /// </summary>
+    /// <returns>Single bit</returns>
+    /// <exception cref="EndOfStreamException">Thrown if the pointer is outside the stream</exception>
     public bool ReadBit()
     {
         if (Pointer >= Length)
@@ -67,6 +97,10 @@ public class BitStream
         return bit;
     }
 
+    /// <summary>
+    /// Reads a single byte of data at the pointer position
+    /// </summary>
+    /// <returns>Single byte of data</returns>
     public byte ReadByte()
     {
         // same algorithm as writing a byte
@@ -92,7 +126,13 @@ public class BitStream
         
         return result;
     }
-
+    
+    /// <summary>
+    /// Writes an integer value using provided amount of bits at the pointer position 
+    /// </summary>
+    /// <param name="value">Integer to write</param>
+    /// <param name="numberOfBitsToUse">Number of bits to use</param>
+    /// <exception cref="ArgumentException">Thrown if provided value cannot be written with provided amount of bits</exception>
     public void WriteInt(int value, int numberOfBitsToUse)
     {
         if (numberOfBitsToUse is < 1 or > 32)
@@ -138,6 +178,10 @@ public class BitStream
         }
     }
 
+    /// <summary>
+    /// Writes another bit stream at the pointer position
+    /// </summary>
+    /// <param name="stream">Stream to write</param>
     public void WriteBitStream(BitStream stream)
     {
         stream.Pointer = 0;
@@ -147,6 +191,10 @@ public class BitStream
         { WriteBit(stream.ReadBit()); }
     }
     
+    /// <summary>
+    /// Checks if stream can read data from the pointer position
+    /// </summary>
+    /// <param name="positions">Number of bits to read forward</param>
     public bool CanRead(int positions) => (Pointer + positions) <= Length;
     
     private void MoveForward(int positions)

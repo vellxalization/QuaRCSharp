@@ -2,6 +2,10 @@
 
 namespace QuaRCSharp.Data.Encoding;
 
+/// <summary>
+/// Data encoder that can encode number from 0-9.
+/// NOTE: some of the QR-Code scanners were actually unable to read this encoding, but I still implemented it 
+/// </summary>
 public class NumericEncoder : IEncodingMethod
 {
     public BitStream Encode(string input)

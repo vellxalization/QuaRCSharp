@@ -5,11 +5,20 @@ using QuaRCSharp.Data.Encoding;
 
 namespace QuaRCSharp.QRCodes;
 
+/// <summary>
+/// Generator class used for generating QR-Codes
+/// </summary>
 public class QRCodeGenerator
 {
     private DataEncoder _encoder = new();
     private CorrectionByteGenerator _errorCorrection = new();
 
+    /// <summary>
+    /// Generates a QR-Code from the input
+    /// </summary>
+    /// <param name="input">Data</param>
+    /// <param name="settings">Parameters to use in the process of generating</param>
+    /// <returns>Ready-to-export instance of QRCanvas with service info, data written, mask applied and borders added</returns>
     public QRCanvas Generate(string input, GeneratorSettings settings)
     {
         DataEncoder.EncodedDataWithHeader encodedData = _encoder.EncodeInput(input, settings.ForceByteEncoding, settings.CorrectionLevel);

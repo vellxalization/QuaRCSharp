@@ -1,5 +1,8 @@
 ﻿namespace QuaRCSharp.Canvas.Masking;
 
+/// <summary>
+/// Numerical representation of a mask that can be applied to the canvas
+/// </summary>
 public enum MaskNumber
 {
     Unmasked = -1,
@@ -13,6 +16,10 @@ public enum MaskNumber
     Seven
 };
 
+/// <summary>
+/// A class that represents a mask that can be applied to the canvas
+/// </summary>
+/// <param name="number">Numerical representation of a mask</param>
 public abstract class Mask(MaskNumber number)
 {
     public MaskNumber Number { get; } = number;
@@ -27,6 +34,9 @@ public abstract class Mask(MaskNumber number)
     };
 }
 
+/// <summary>
+/// Static class used to access all available canvas masks 
+/// </summary>
 public static class Masks
 {
     public static Mask GetUnmasked { get; } = new Unmasked();
@@ -39,6 +49,11 @@ public static class Masks
     public static Mask GetMaskSix { get; } = new MaskSix();
     public static Mask GetMaskSeven { get; } = new MaskSeven();
 
+    /// <summary>
+    /// Method for accessing any mask by using its number
+    /// </summary>
+    /// <param name="number">Numerical representation of a mask</param>
+    /// <returns>An instance of a Mask class</returns>
     public static Mask GetMaskByNumber(MaskNumber number)
     {
         return number switch
@@ -55,46 +70,55 @@ public static class Masks
         };
     }
     
+    /// <inheritdoc/>
     private class Unmasked() : Mask(MaskNumber.Unmasked)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = _ => false;
     }
-
+    
+    /// <inheritdoc/>
     private class MaskZero() : Mask(MaskNumber.Zero)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => (position.X+position.Y) % 2 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskOne() : Mask(MaskNumber.One)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => position.Y % 2 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskTwo() : Mask(MaskNumber.Two)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => position.X % 3 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskThree() : Mask(MaskNumber.Three)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => (position.X + position.Y) % 3 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskFour() : Mask(MaskNumber.Four)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => (position.X / 3 + position.Y / 2) % 2 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskFive() : Mask(MaskNumber.Five)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => position.X * position.Y % 2 + position.X * position.Y % 3 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskSix() : Mask(MaskNumber.Six)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => (position.X * position.Y % 2 + position.X * position.Y % 3) % 2 == 0;
     }
 
+    /// <inheritdoc/>
     private class MaskSeven() : Mask(MaskNumber.Seven)
     {
         protected override Predicate<(int X, int Y)> ShouldInvert { get; } = position => (position.X * position.Y % 3 + position.X + position.Y % 2) % 2 == 0;

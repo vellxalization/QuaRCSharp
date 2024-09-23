@@ -1,7 +1,15 @@
 ﻿namespace QuaRCSharp.Canvas;
 
+/// <summary>
+/// Immutable canvas with a 4 bit wide borders at the top, bottom, left and right
+/// </summary>
 public class BorderedQRCanvas : QRCanvas
 {
+    /// <summary>
+    /// Creates a fully immutable copy of a provided canvas with borders
+    /// </summary>
+    /// <param name="canvas">Canvas to create borders around</param>
+    /// <exception cref="ArgumentException">Thrown if provided canvas already has borders</exception>
     public BorderedQRCanvas(QRCanvas canvas) : base(canvas.Data)
     {
         if (canvas.IsBordered)
@@ -24,6 +32,7 @@ public class BorderedQRCanvas : QRCanvas
             newPos.X += 4;
             newPos.Y += 4;
             
+            // not using SetBit() to avoid double masking if canvas already have applied mask on it
             Canvas[newPos.Y, newPos.X] = bit with { Position = newPos };
         }
     }

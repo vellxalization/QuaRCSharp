@@ -2,6 +2,9 @@
 
 namespace QuaRCSharp.Canvas.Modifiers;
 
+/// <summary>
+/// Modifier for adding blocks about version on a canvas (version 7 and higher)
+/// </summary>
 public class VersionModifier : ICanvasModifier
 {
     public void ModifyCanvas(ref QRCanvas canvas)

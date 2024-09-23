@@ -3,8 +3,17 @@ using QuaRCSharp.Canvas;
 
 namespace QuaRCSharp.Export;
 
+/// <summary>
+/// Class for exporting canvas as a .svg image
+/// </summary>
 public class SvgExporter
 {
+    /// <summary>
+    /// Exports canvas as a .svg image
+    /// </summary>
+    /// <param name="canvas">Canvas to export</param>
+    /// <param name="path">Where to export</param>
+    /// <param name="size">Size in pixels</param>
     public void Export(QRCanvas canvas, string path, int size)
     {
         using var fileStream = new FileStream(path, FileMode.OpenOrCreate);
@@ -15,6 +24,7 @@ public class SvgExporter
         int streak = 0;
         foreach (CanvasBit bit in canvas.GetReadingEnumerator())
         {
+            // combining horizontal bits data to a single rectangle to reduce space
             if (currentValue is null)
             {
                 currentValue = bit.Value;

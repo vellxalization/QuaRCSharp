@@ -1,5 +1,8 @@
 ﻿namespace QuaRCSharp.Canvas.Modifiers;
 
+/// <summary>
+/// Modifier for adding a 7x7 finder pattern on the top-left, top-right and bottom-left corners
+/// </summary>
 public class FinderModifier : ICanvasModifier
 {
     private static readonly bool[,] FinderPattern = 

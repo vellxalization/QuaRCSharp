@@ -2,12 +2,23 @@
 
 namespace QuaRCSharp.Data.Encoding;
 
+/// <summary>
+/// Facade class used for encoding data
+/// </summary>
 public class DataEncoder
 {
     private readonly ByteEncoder _byteEncoder = new();
     private readonly AlphanumericEncoder _alphanumericEncoder = new();
     private readonly NumericEncoder _numericEncoder = new();
     
+    /// <summary>
+    /// Encodes provided data
+    /// </summary>
+    /// <param name="input">String to encode</param>
+    /// <param name="forceByteEncoding">If true - will always use byte encoding.
+    /// NOTE: some QR-Code scanners were unable to read numeric encoding. Using current parameter will prevent this.</param>
+    /// <param name="correction">Level of data correction that will be used</param>
+    /// <returns>Intermediate record with data, optimal version and error correction</returns>
     public EncodedDataWithHeader EncodeInput(string input, bool forceByteEncoding, CorrectionLevel correction)
     {
         IEncodingMethod encoder =  forceByteEncoding ? _byteEncoder : GetBestEncoderForInput(input);
@@ -95,6 +106,12 @@ public class DataEncoder
         throw new ArgumentException("Argument bitLength exceeds every possible data length for provided level correction");
     }
     
+    /// <summary>
+    /// Intermediate record containing an encoded bitstream of header and data with information about them
+    /// </summary>
+    /// <param name="EncodedHeaderWithPaddedData">Bit stream of header and encoded data</param>
+    /// <param name="Version">Chosen optimal version of QR-Code</param>
+    /// <param name="Correction">Level of error correction</param>
     public record EncodedDataWithHeader(BitStream EncodedHeaderWithPaddedData, QRCodeVersion Version, CorrectionLevel Correction);
 }
 

@@ -1,5 +1,8 @@
 ﻿namespace QuaRCSharp.QRCodes;
 
+/// <summary>
+/// Struct representing version of a QR-Code
+/// </summary>
 public struct QRCodeVersion
 {
     private int _version;

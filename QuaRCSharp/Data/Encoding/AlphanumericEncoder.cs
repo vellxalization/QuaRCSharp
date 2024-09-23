@@ -2,6 +2,9 @@
 
 namespace QuaRCSharp.Data.Encoding;
 
+/// <summary>
+/// Data encoder that uses upper-case alphabet, 0-9 and special symbols ($, %, &, +, -, ., /, :)
+/// </summary>
 public class AlphanumericEncoder : IEncodingMethod
 {
     public static readonly Dictionary<char, int> Characters = new()

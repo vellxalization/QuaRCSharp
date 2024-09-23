@@ -2,6 +2,9 @@
 
 namespace QuaRCSharp.Canvas.Modifiers;
 
+/// <summary>
+/// Modifier for adding a 5x5 alignment patterns on a canvas (version 2 and higher)
+/// </summary>
 public class AlignmentModifier : ICanvasModifier
 {
     private static readonly bool[,] AlignmentPattern = new[,]

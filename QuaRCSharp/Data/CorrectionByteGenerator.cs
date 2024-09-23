@@ -2,6 +2,9 @@
 
 namespace QuaRCSharp.Data;
 
+/// <summary>
+/// Class for generation correction bytes
+/// </summary>
 public class CorrectionByteGenerator
 {
     private static readonly byte[] GaloisField =
@@ -44,6 +47,13 @@ public class CorrectionByteGenerator
         79, 174, 213, 233, 230, 231, 173, 232, 116, 214, 244, 234, 168, 80, 88, 175
     ];
     
+    /// <summary>
+    /// Creates a chain of correction bytes
+    /// </summary>
+    /// <param name="byteChain">Original message</param>
+    /// <param name="version">Version of a QR-Code</param>
+    /// <param name="correction">Level of error correction</param>
+    /// <returns>Chain of correction bytes</returns>
     public byte[][] CreateErrorCorrectionBytesForByteChain(byte[][] byteChain, QRCodeVersion version, CorrectionLevel correction)
     {
         int numberOfCorrectionBlocks = QRCodeData.GetNumberOfCorrectionBlocks(version, correction);

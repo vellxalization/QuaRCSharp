@@ -2,8 +2,16 @@
 
 namespace QuaRCSharp.Canvas.Masking;
 
+/// <summary>
+/// Class for automatic determination of the best mask for the canvas
+/// </summary>
 public class MaskDeterminer
 {
+    /// <summary>
+    /// Determines the best mask for a given canvas
+    /// </summary>
+    /// <param name="canvas">Unmasked and borderless canvas</param>
+    /// <returns>New instance of a MaskedQRCanvas canvas</returns>
     public QRCanvas ApplyBestMask(QRCanvas canvas)
     {
         int minPenalty = int.MaxValue;

@@ -1,5 +1,8 @@
 ﻿namespace QuaRCSharp.Canvas.Modifiers;
 
+/// <summary>
+/// Modifier for adding strips of alternating bits between finder patterns on a canvas
+/// </summary>
 public class SynchronizationStripModifier : ICanvasModifier
 {
     public void ModifyCanvas(ref QRCanvas canvas)

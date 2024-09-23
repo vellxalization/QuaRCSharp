@@ -5,12 +5,22 @@ using QuaRCSharp.QRCodes;
 
 namespace QuaRCSharp.Canvas;
 
+/// <summary>
+/// Builder class for adding information to the canvas
+/// </summary>
 public class QRCanvasPainter
 {
+    /// <summary>
+    /// A canvas that will be modified
+    /// </summary>
     public QRCanvas Canvas => _canvas;
     private QRCanvas _canvas;
     public QRCanvasPainter(QRCanvas canvas) => _canvas = canvas;
     
+    /// <summary>
+    /// Adds basic service information to the canvas
+    /// </summary>
+    /// <returns>Instance of itself for chaining methods</returns>
     public QRCanvasPainter AddServiceInfo()
     {
         ICanvasModifier[] serviceMods = GetAllServiceModifiers(_canvas.Data);
@@ -20,6 +30,11 @@ public class QRCanvasPainter
         return this;
     }
 
+    /// <summary>
+    /// Writes data inside the canvas to the canvas itself
+    /// </summary>
+    /// <returns>Instance of itself for chaining methods</returns>
+    /// <exception cref="ArgumentException">Thrown in case the provided canvas cannot fully accommodate data from the stream</exception>
     public QRCanvasPainter WriteDataToCanvas()
     {
         BitStream dataStream = _canvas.Data.DataWithErrorCorrection;
@@ -54,6 +69,11 @@ public class QRCanvasPainter
         return this;
     }
 
+    /// <summary>
+    /// Applies a specific mask to the canvas
+    /// </summary>
+    /// <param name="mask">Mask to apply to the canvas</param>
+    /// <returns>Instance of itself for chaining methods</returns>
     public QRCanvasPainter ApplyMask(Mask mask)
     {
         _canvas = new MaskedQRCanvas(_canvas, mask);
@@ -62,6 +82,10 @@ public class QRCanvasPainter
         return this;
     }
     
+    /// <summary>
+    /// Automatically determine and apply best mask for the canvas
+    /// </summary>
+    /// <returns>Instance of itself for chaining methods</returns>
     public QRCanvasPainter ApplyBestMask()
     {
         MaskDeterminer maskApplier = new MaskDeterminer();
@@ -71,6 +95,10 @@ public class QRCanvasPainter
         return this;
     }
 
+    /// <summary>
+    /// Adds a 4-bit wide border to the canvas at the top, bottom, left and right
+    /// </summary>
+    /// <returns>Instance of itself for chaining methods</returns>
     public QRCanvasPainter AddBorders()
     {
         _canvas = new BorderedQRCanvas(_canvas);

@@ -2,8 +2,18 @@
 
 namespace QuaRCSharp.Data;
 
+/// <summary>
+/// Static class for creating byte chains (arrays of byte arrays) from bit streams
+/// </summary>
 public static class ByteChain
 {
+    /// <summary>
+    /// Converts bit stream to the byte chain
+    /// </summary>
+    /// <param name="stream">Bit stream of data</param>
+    /// <param name="version">Version of QR-Code</param>
+    /// <param name="correction">Level of error correction</param>
+    /// <returns></returns>
     public static byte[][] CreateByteChainFromBitStream(BitStream stream, QRCodeVersion version, CorrectionLevel correction)
     {
         stream.Pointer = 0;

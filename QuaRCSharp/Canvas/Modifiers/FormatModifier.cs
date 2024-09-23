@@ -3,6 +3,9 @@ using QuaRCSharp.QRCodes;
 
 namespace QuaRCSharp.Canvas.Modifiers;
 
+/// <summary>
+/// Modifier for adding information about applied mask and error correction on a canvas
+/// </summary>
 public class FormatModifier : ICanvasModifier
 {
     private readonly string _code;
