@@ -11,7 +11,8 @@ public record GeneratorSettings(CorrectionLevel CorrectionLevel, bool ForceByteE
 
 public enum MaskingOptions
 {
-    Auto,
+    Auto = -1,
+    Zero = 0,
     One,
     Two,
     Three,
