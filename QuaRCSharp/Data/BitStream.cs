@@ -23,6 +23,9 @@ public class BitStream
     /// <param name="bit">Single bit</param>
     public void WriteBit(bool bit)
     {
+        if (Pointer + 1 > _capacity)
+        { EnlargeStream(); }
+        
         var divRem = Math.DivRem(Pointer, 8);
         if (bit)
         { _stream[divRem.Quotient] |= (byte)(1 << (7 - divRem.Remainder)); }
@@ -48,6 +51,9 @@ public class BitStream
     /// <param name="newValue">Byte to write</param>
     public void WriteByte(byte newValue)
     {
+        if (Pointer + 8 > _capacity)
+        { EnlargeStream(); }
+        
         var divRem = Math.DivRem(Pointer, 8);
         if (divRem.Remainder is 0)
         {
@@ -146,6 +152,9 @@ public class BitStream
         if (newValue > (0b_11111111_11111111_11111111_11111111 >> (32 - numberOfBitsToUse)))
         { throw new ArgumentException("Can't fully write int using provided amount of bits"); }
 
+        if (Pointer + numberOfBitsToUse > _capacity)
+        { EnlargeStream((int)Math.Ceiling((decimal)numberOfBitsToUse / 8)); }
+        
         if (numberOfBitsToUse is 8)
         {
             WriteByte((byte)(newValue & 0b_1111_1111));
@@ -217,25 +226,14 @@ public class BitStream
     
     private void MoveForward(int positions)
     {
-        for (int i = 0; i < positions; ++i)
-        {
-            if (Pointer == Length)
-            {
-                ++Pointer;
-                ++Length;
-                EnsureCapacity();
-            }
-            else
-            { ++Pointer; }
-        }
+        Pointer += positions;
+        if (Pointer > Length)
+        { Length = Pointer; }
     }
-
-    private void EnsureCapacity()
+    
+    private void EnlargeStream(int numberOfBytes = 1)
     {
-        if (Pointer >= _capacity)
-        {
-            _stream.AddRange([0, 0]);
-            _capacity += 8 * 2;
-        }
+        _stream.AddRange(Enumerable.Repeat((byte)0, numberOfBytes));
+        _capacity += 8 * numberOfBytes;
     }
 }
