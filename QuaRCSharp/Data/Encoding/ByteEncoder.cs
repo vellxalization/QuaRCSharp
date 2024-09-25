@@ -9,8 +9,10 @@ public class ByteEncoder : IEncodingMethod
 {
     public BitStream Encode(string input)
     {
-        var dataStream = new BitStream();
+        if (string.IsNullOrEmpty(input))
+        { throw new ArgumentException("Can't encode null or empty string"); }
         
+        var dataStream = new BitStream();
         foreach (byte @byte in System.Text.Encoding.UTF8.GetBytes(input))
         { dataStream.WriteByte(@byte); }
         

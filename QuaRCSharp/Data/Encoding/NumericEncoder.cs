@@ -10,6 +10,9 @@ public class NumericEncoder : IEncodingMethod
 {
     public BitStream Encode(string input)
     {
+        if (string.IsNullOrEmpty(input))
+        { throw new ArgumentException("Can't encode null or empty string"); }
+        
         var stream = new BitStream();
         foreach (char[] chunk in input.Chunk(3))
         {
