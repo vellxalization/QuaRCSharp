@@ -18,8 +18,8 @@ public class AlignmentModifier : ICanvasModifier
     
     public void ModifyCanvas(ref QRCanvas canvas)
     {
-        if (canvas.IsBordered)
-        { throw new ArgumentException("Cannot modify bordered canvas"); }
+        if (canvas.Data.Version < 2)
+        { throw new ArgumentException("Cannot generate alignment patters for provided version"); }
         
         foreach (var position in GetAvailablePositions(canvas.Data.Version))
         {

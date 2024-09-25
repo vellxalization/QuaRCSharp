@@ -9,6 +9,9 @@ public class VersionModifier : ICanvasModifier
 {
     public void ModifyCanvas(ref QRCanvas canvas)
     {
+        if (canvas.Data.Version < 7)
+        { throw new ArgumentException("Cannot generate version blocks for provided version"); }
+        
         string code = GetCode(canvas.Data.Version);
         AddCodeToBottomLeft(canvas, code);
         AddCodeToTopRight(canvas, code);
