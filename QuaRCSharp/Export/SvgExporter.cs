@@ -14,11 +14,14 @@ public class SvgExporter
     /// <param name="canvas">Canvas to export</param>
     /// <param name="path">Where to export</param>
     /// <param name="size">Size in pixels</param>
+    /// <exception cref="ArgumentException">Thrown if provided size smaller than canvas.Size</exception>
     public void Export(QRCanvas canvas, string path, int size)
     {
+        if (canvas.Size < size)
+        { throw new ArgumentException("Size of the image cannot be smaller than the size of canvas."); }
+        
         using var fileStream = new FileStream(path, FileMode.OpenOrCreate);
         var builder = new StringBuilder();
-        builder.AppendLine("<?xml version='1.0' encoding='utf-8'?>");
         builder.AppendLine($"<svg width='{size}' height='{size}' viewBox='0 0 {canvas.Size} {canvas.Size}' xmlns='http://www.w3.org/2000/svg'>");
         CanvasBitValue? currentValue = null;
         int streak = 0;
