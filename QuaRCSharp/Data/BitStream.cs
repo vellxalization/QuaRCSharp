@@ -23,11 +23,11 @@ public class BitStream
     /// <param name="bit">Single bit</param>
     public void WriteBit(bool bit)
     {
+        var divRem = Math.DivRem(Pointer, 8);
         if (bit)
-        {
-            var divRem = Math.DivRem(Pointer, 8);
-            _stream[divRem.Quotient] |= (byte)(1 << (7 - divRem.Remainder));
-        }
+        { _stream[divRem.Quotient] |= (byte)(1 << (7 - divRem.Remainder)); }
+        else
+        { _stream[divRem.Quotient] &= (byte)(~(1 << (7 - divRem.Remainder))); }
         
         MoveForward(1);
     }
@@ -45,28 +45,32 @@ public class BitStream
     /// <summary>
     /// Writes a byte at the pointer position
     /// </summary>
-    /// <param name="value">Byte to write</param>
-    public void WriteByte(byte value)
+    /// <param name="newValue">Byte to write</param>
+    public void WriteByte(byte newValue)
     {
         var divRem = Math.DivRem(Pointer, 8);
         if (divRem.Remainder is 0)
         {
             // write full byte
-            _stream[divRem.Quotient] = value;
+            _stream[divRem.Quotient] = newValue;
             MoveForward(8);
             return;
         }
-
-        // write fist n bits of value to current byte
-        byte mask = 0b_1111_1111;
-        mask <<= divRem.Remainder;
-        _stream[divRem.Quotient] |= (byte)((value & mask) >> divRem.Remainder);
+        
+        byte mask = (byte)(0b_1111_1111 >> divRem.Remainder); // mask for reading first N bits from newValue
+        byte currentByteValue = _stream[divRem.Quotient];
+        currentByteValue &= (byte)~mask; // discarding last N bits of current byte
+        currentByteValue |= (byte)((newValue & (mask << divRem.Remainder)) >> divRem.Remainder);  // read first N bits of newValue and
+        // insert them at the end of the current byte
+        _stream[divRem.Quotient] = currentByteValue;
         MoveForward(8 - divRem.Remainder);
-
-        // write remaining (8 - n) bits of value to the next byte
-        mask = 0b_1111_1111;
-        mask >>= 8 - divRem.Remainder;
-        _stream[divRem.Quotient + 1] |= (byte)((value & mask) << (8 - divRem.Remainder));
+        
+        currentByteValue = _stream[divRem.Quotient + 1]; // get next byte
+        currentByteValue &= mask; // discard first (8 - N) bits using previous mask
+        mask = (byte)(0b_1111_1111 >> (8 - divRem.Remainder)); // create new mask for reading last (8 - N) bits from newValue
+        currentByteValue |= (byte)((newValue & mask) << (8 - divRem.Remainder)); // read last (8 - N) bits from newValue and 
+        // insert them at the start of the current byte
+        _stream[divRem.Quotient + 1] = currentByteValue;
         MoveForward(divRem.Remainder);
     }
     
@@ -87,7 +91,7 @@ public class BitStream
     /// <exception cref="EndOfStreamException">Thrown if the pointer is outside the stream</exception>
     public bool ReadBit()
     {
-        if (Pointer >= Length)
+        if (!CanRead(1))
         { throw new EndOfStreamException(); }
         
         var divRem = Math.DivRem(Pointer, 8);
@@ -101,9 +105,12 @@ public class BitStream
     /// Reads a single byte of data at the pointer position
     /// </summary>
     /// <returns>Single byte of data</returns>
+    /// /// <exception cref="EndOfStreamException">Thrown if pointer's final position exceeds length of the stream</exception>
     public byte ReadByte()
     {
-        // same algorithm as writing a byte
+        if (!CanRead(8))
+        { throw new EndOfStreamException(); }
+        
         var divRem = Math.DivRem(Pointer, 8);
         byte result = 0;
         if (divRem.Remainder is 0)
@@ -112,16 +119,14 @@ public class BitStream
             MoveForward(8);
             return result;
         }
-    
         
-        byte mask = 0b_1111_1111;
-        mask >>= divRem.Remainder;
-        result |= (byte)((_stream[divRem.Quotient] & mask) << divRem.Remainder);
+        byte mask = (byte)(0b_1111_1111 >> divRem.Remainder); // mask for reading N last bits of current byte
+        result |= (byte)((_stream[divRem.Quotient] & mask) << divRem.Remainder); // read N last bits and insert them at the beginning
         MoveForward(8 - divRem.Remainder);
         
-        mask = 0b_1111_1111;
-        mask <<= 8 - divRem.Remainder;
-        result |= (byte)((_stream[divRem.Quotient + 1] & mask) >> (8 - divRem.Remainder));
+        mask = (byte)(0b_1111_1111 << (8 - divRem.Remainder)); // mask for reading (8 - N) first bits of the next byte
+        result |= (byte)((_stream[divRem.Quotient + 1] & mask) >> (8 - divRem.Remainder)); // read (8 - N) first bits of the next byte
+        // and insert them at the end
         MoveForward(divRem.Remainder);
         
         return result;
@@ -130,51 +135,64 @@ public class BitStream
     /// <summary>
     /// Writes an integer value using provided amount of bits at the pointer position 
     /// </summary>
-    /// <param name="value">Integer to write</param>
+    /// <param name="newValue">Integer to write</param>
     /// <param name="numberOfBitsToUse">Number of bits to use</param>
     /// <exception cref="ArgumentException">Thrown if provided value cannot be written with provided amount of bits</exception>
-    public void WriteInt(int value, int numberOfBitsToUse)
+    public void WriteInt(int newValue, int numberOfBitsToUse)
     {
         if (numberOfBitsToUse is < 1 or > 32)
         { throw new ArgumentException("Can't write int using provided amount of bits"); }
-
-        uint mask = 0b_11111111_11111111_11111111_11111111;
-        mask >>= 32 - numberOfBitsToUse;
-        if (value > mask)
+        
+        if (newValue > (0b_11111111_11111111_11111111_11111111 >> (32 - numberOfBitsToUse)))
         { throw new ArgumentException("Can't fully write int using provided amount of bits"); }
-
-        if (numberOfBitsToUse is 1)
-        {
-            WriteBit((value & mask) > 0);
-            return;
-        }
 
         if (numberOfBitsToUse is 8)
         {
-            WriteByte((byte)(value & mask));
+            WriteByte((byte)(newValue & 0b_1111_1111));
+            return;
+        }
+
+        if (numberOfBitsToUse is 1)
+        {
+            WriteBit(newValue is 1);
             return;
         }
 
         while (numberOfBitsToUse > 0)
         {
             var divRem = Math.DivRem(Pointer, 8);
-            if (numberOfBitsToUse < (8 - divRem.Remainder))
+            byte currentByteValue = _stream[divRem.Quotient];
+            byte mask = 0b_1111_1111;
+
+            if (numberOfBitsToUse == (8 - divRem.Remainder))
             {
-                // current byte can can fully accommodate remaining bits and there will be spare bits in byte
-                _stream[divRem.Quotient] |= (byte)((value & mask) << (8 - divRem.Remainder - numberOfBitsToUse));
+                // current byte can fully accomodate remaining bits and pointer will move to the next byte in the stream
+                mask >>= divRem.Remainder;
+                currentByteValue &= (byte)(~mask);
+                currentByteValue |= (byte)(newValue & mask);
+                _stream[divRem.Quotient] = currentByteValue;
                 MoveForward(numberOfBitsToUse);
                 return;
             }
 
-            // current byte can partially or fully (with no spare bits in byte remaining) accommodate remaining bits
-            mask <<= (numberOfBitsToUse - (8 - divRem.Remainder));
-            _stream[divRem.Quotient] |= (byte)((value & mask) >> (numberOfBitsToUse - (8 - divRem.Remainder)));
-
+            if (numberOfBitsToUse < (8 - divRem.Remainder))
+            {
+                // current byte can fully accomodate remaining bits and pointer will remain on the current byte
+                mask >>= (8 - numberOfBitsToUse);
+                currentByteValue &= (byte)(~(mask << (8 - numberOfBitsToUse)));
+                currentByteValue |= (byte)((mask & newValue) << (8 - numberOfBitsToUse));
+                _stream[divRem.Quotient] = currentByteValue;
+                MoveForward(numberOfBitsToUse);
+                return;
+            }
+            
+            // current byte cannot fully accomodate remaining bits
+            mask >>= divRem.Remainder;
+            currentByteValue &= (byte)(~mask);
+            currentByteValue |= (byte)(mask & (newValue >> (numberOfBitsToUse - (8 - divRem.Remainder))));
+            _stream[divRem.Quotient] = currentByteValue;
             MoveForward(8 - divRem.Remainder);
-            numberOfBitsToUse -= 8 - divRem.Remainder;
-
-            mask = 0b_11111111_11111111_11111111_11111111;
-            mask >>= 32 - numberOfBitsToUse;
+            numberOfBitsToUse -= (8 - divRem.Remainder);
         }
     }
 
