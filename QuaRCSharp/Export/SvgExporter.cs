@@ -17,7 +17,7 @@ public class SvgExporter
     /// <exception cref="ArgumentException">Thrown if provided size smaller than canvas.Size</exception>
     public void Export(QRCanvas canvas, string path, int size)
     {
-        if (canvas.Size < size)
+        if (size < canvas.Size)
         { throw new ArgumentException("Size of the image cannot be smaller than the size of canvas."); }
         
         using var fileStream = new FileStream(path, FileMode.OpenOrCreate);
