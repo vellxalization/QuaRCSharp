@@ -8,11 +8,11 @@ namespace QuaRCSharp.Canvas.Masking;
 public class MaskDeterminer
 {
     /// <summary>
-    /// Determines the best mask for a given canvas
+    /// Determines the best mask for a given canvas by calculating the penalty for each mask and selecting the one with the lowest penalty
     /// </summary>
     /// <param name="canvas">Unmasked and borderless canvas</param>
     /// <returns>New instance of a MaskedQRCanvas canvas</returns>
-    public QRCanvas ApplyBestMask(QRCanvas canvas)
+    public MaskedQRCanvas ApplyBestMask(QRCanvas canvas)
     {
         int minPenalty = int.MaxValue;
         QRCanvas? bestCanvas = null;
@@ -33,88 +33,81 @@ public class MaskDeterminer
             }
         }
         
-        return bestCanvas!;
+        return (MaskedQRCanvas)bestCanvas!;
     }
 
     private int CountPenaltyPoints(QRCanvas maskedCanvas)
     {
-        int penalty = CountHorizontalPenalty(maskedCanvas);
-        penalty += CountVerticalPenalty(maskedCanvas);
+        // Add a penalty for each sequence of white or black bits that is longer than 5
+        int penalty = CountLongNonAlternatePenalty(maskedCanvas, false);
+        penalty += CountLongNonAlternatePenalty(maskedCanvas, true);
         
-        penalty += CountHorizontalStripePenalty(maskedCanvas);
-        penalty += CountVerticalStripePenalty(maskedCanvas);
+        // Add penalty for every WWWWBWBBBWB or BWBBBWBWWWW pattern
+        penalty += CountPatternPenalty(maskedCanvas, false);
+        penalty += CountPatternPenalty(maskedCanvas, true);
         
+        // Add penalty for every 2x2 area of the same color
         penalty += CountSquarePenalty(maskedCanvas);
+        // Add penalty for a significant dominance of one color over another
         penalty += CountRatioPenalty(maskedCanvas);
 
         return penalty;
     }
 
-    private int CountHorizontalPenalty(QRCanvas maskedCanvas)
+    private int CountLongNonAlternatePenalty(QRCanvas canvas, bool scanVertically)
     {
-        int penalty = 0;
+        (int X, int Y) position = (0, 0);
         
-        for (int y = 0; y < maskedCanvas.Size; ++y)
+        int penalty = 0;
+        CanvasBitValue? comparableValue = null;
+        int currentStreak = 0;
+        
+        ref int mainAxis = ref scanVertically ? ref position.Y : ref position.X;
+        ref int secondaryAxis = ref scanVertically ? ref position.X : ref position.Y;
+
+        while (secondaryAxis < canvas.Size)
         {
-            CanvasBitValue currentComparableValue = maskedCanvas.GetBit((0, y)).Value;
-            int currentStreak = 1;
-            
-            for (int x = 1; x < maskedCanvas.Size; ++x)
+            if (mainAxis >= canvas.Size)
             {
-                CanvasBit bit = maskedCanvas.GetBit((x, y));
-                if (bit.Value == currentComparableValue)
-                {
-                    ++currentStreak;
-                    continue;
-                }
-                if (currentStreak >= 5)
+                if (currentStreak > 5)
                 { penalty += currentStreak - 2; }
-                
-                currentComparableValue = bit.Value;
-                currentStreak = 1;
+
+                currentStreak = 0;
+                comparableValue = null;
+                mainAxis = 0;
+                ++secondaryAxis;
+                continue;
             }
             
-            if (currentStreak >= 5)
-            { penalty += currentStreak - 2; }
+            CanvasBitValue currentValue = canvas.GetBit(position).Value;
+            if (comparableValue is null)
+            {
+                comparableValue = currentValue;
+                currentStreak = 1;
+                ++mainAxis;
+                continue;
+            }
+
+            if (comparableValue == currentValue)
+            { ++currentStreak; }
+            else
+            {
+                if (currentStreak > 5)
+                { penalty += currentStreak - 2; }
+
+                currentStreak = 1;
+                comparableValue = currentValue;
+            }
+
+            ++mainAxis;
         }
 
-        return penalty;
-    }
-    
-    private int CountVerticalPenalty(QRCanvas maskedCanvas)
-    {
-        int penalty = 0;
-        
-        for (int x = 0; x < maskedCanvas.Size; ++x)
-        {
-            CanvasBitValue currentComparableValue = maskedCanvas.GetBit((x, 0)).Value;
-            int currentStreak = 1;
-            
-            for (int y = 1; y < maskedCanvas.Size; ++y)
-            {
-                CanvasBit bit = maskedCanvas.GetBit((x, y));
-                if (bit.Value == currentComparableValue)
-                {
-                    ++currentStreak;
-                    continue;
-                }
-                if (currentStreak >= 5)
-                { penalty += currentStreak - 2; }
-                
-                currentComparableValue = bit.Value;
-                currentStreak = 1;
-            }
-            
-            if (currentStreak >= 5)
-            { penalty += currentStreak - 2; }
-        }
-        
         return penalty;
     }
 
     private int CountSquarePenalty(QRCanvas maskedCanvas)
     {
-        int numberOfSquares = 0;
+        int penalty = 0;
         for (int x = 0; x < maskedCanvas.Size - 1; ++x)
         {
             for (int y = 0; y < maskedCanvas.Size - 1; ++y)
@@ -124,216 +117,77 @@ public class MaskDeterminer
                     maskedCanvas.GetBit((x + 1, y)).Value is CanvasBitValue.False &&
                     maskedCanvas.GetBit((x, y + 1)).Value is CanvasBitValue.False &&
                     maskedCanvas.GetBit((x + 1, y + 1)).Value is CanvasBitValue.False)
-                { ++numberOfSquares; }
+                { penalty += 3; }
                 else if (maskedCanvas.GetBit((x, y)).Value is CanvasBitValue.True &&
                          maskedCanvas.GetBit((x + 1, y)).Value is CanvasBitValue.True &&
                          maskedCanvas.GetBit((x, y + 1)).Value is CanvasBitValue.True &&
                          maskedCanvas.GetBit((x + 1, y + 1)).Value is CanvasBitValue.True)
-                { ++numberOfSquares; }
+                { penalty += 3; }
             }
         }
 
-        return numberOfSquares * 3;
+        return penalty;
     }
 
-    private int CountHorizontalStripePenalty(QRCanvas maskedCanvas)
+    private int CountPatternPenalty(QRCanvas canvas, bool scanVertically)
     {
-        int numberOfStripes = 0;
+        int penalty = 0;
+        (int X, int Y) position = (0, 0);
+        CanvasBitValue[] blackWhiteBlackPattern = [CanvasBitValue.True, CanvasBitValue.False, CanvasBitValue.True, CanvasBitValue.True, CanvasBitValue.True, CanvasBitValue.False, CanvasBitValue.True];
+        CanvasBitValue[] whitePattern = [CanvasBitValue.False, CanvasBitValue.False, CanvasBitValue.False, CanvasBitValue.False];
         
-        for (int y = 0; y < maskedCanvas.Size; ++y)
+        ref int mainAxis = ref scanVertically ? ref position.Y : ref position.X;
+        ref int secondaryAxis = ref scanVertically ? ref position.X : ref position.Y;
+
+        while (secondaryAxis < canvas.Size)
         {
-            int x = 0;
-            while (x < maskedCanvas.Size)
+            if ((mainAxis + 11) >= canvas.Size)
             {
-                switch (maskedCanvas.GetBit((x, y)).Value)
-                {
-                    case CanvasBitValue.False:
-                        if (!TryMatchWhitePattern((x, y), out int? failedAt))
-                        {
-                            x = failedAt!.Value;
-                            continue;
-                        }
-
-                        x += 4;
-                        if (!TryMatchBlackWhitePattern((x, y), out failedAt))
-                        {
-                            x = failedAt!.Value;
-                            continue;
-                        }
-
-                        x += 7;
-                        ++numberOfStripes;
-                        break;
-                    
-                    case CanvasBitValue.True:
-                        if (!TryMatchBlackWhitePattern((x, y), out failedAt))
-                        {
-                            x = failedAt!.Value;
-                            continue;
-                        }
-
-                        x += 7;
-                        if (!TryMatchWhitePattern((x, y), out failedAt))
-                        {
-                            x = failedAt!.Value;
-                            continue;
-                        }
-
-                        x += 4;
-                        ++numberOfStripes;
-                        break;
-                    
-                    default:
-                        ++x;
-                        break;
-                }
-            }
-        }
-        return numberOfStripes * 40;
-        
-        bool TryMatchWhitePattern((int X, int Y) startPosition, out int? failedAt)
-        {
-            failedAt = null;
-            if (startPosition.X + 4 >= maskedCanvas.Size)
-            {
-                failedAt = maskedCanvas.Size;
-                return false;
+                // if there are less than 11 (length of the whole pattern) bits in row/column to check - skip them
+                mainAxis = 0;
+                ++secondaryAxis;
+                continue;
             }
             
-            for (int i = startPosition.X; i < startPosition.X + 4; ++i)
+            CanvasBitValue value = canvas.GetBit(position).Value;
+            if (value is CanvasBitValue.True)
             {
-                if (maskedCanvas.GetBit((i, startPosition.Y)).Value is CanvasBitValue.False) 
+                if (!TryMatchPattern(blackWhiteBlackPattern, ref mainAxis))
                 { continue; }
-                
-                failedAt = i;
-                return false;
+
+                if (!TryMatchPattern(whitePattern, ref mainAxis))
+                { continue; }
+
+                penalty += 40;
             }
-
-            return true;
-        }
-
-        bool TryMatchBlackWhitePattern((int X, int Y ) startPosition, out int? failedAt)
-        {
-            failedAt = null;
-            if (startPosition.X + 7 >= maskedCanvas.Size)
+            else if (value is CanvasBitValue.False)
             {
-                failedAt = maskedCanvas.Size;
-                return false;
+                if (!TryMatchPattern(whitePattern, ref mainAxis))
+                { continue; }
+
+                if (!TryMatchPattern(blackWhiteBlackPattern, ref mainAxis))
+                { continue; }
+
+                penalty += 40;
+            }
+        }
+        
+        return penalty;
+        
+        bool TryMatchPattern(CanvasBitValue[] pattern, ref int mainAxis)
+        {
+            foreach (CanvasBitValue bit in pattern)
+            {
+                if (canvas.GetBit(position).Value != bit)
+                { return false; }
+
+                ++mainAxis;
             }
             
-            CanvasBitValue[] pattern = [CanvasBitValue.True, CanvasBitValue.False, CanvasBitValue.True, CanvasBitValue.True, CanvasBitValue.True, CanvasBitValue.False, CanvasBitValue.True];
-            for (int i = 0; i < 7; ++i)
-            {
-                if (maskedCanvas.GetBit((startPosition.X + i, startPosition.Y)).Value == pattern[i]) 
-                { continue; }
-                
-                failedAt = startPosition.X + i;
-                return false;
-            }
-
             return true;
         }
     }
-    
-    private int CountVerticalStripePenalty(QRCanvas maskedCanvas)
-    {
-        int numberOfStripes = 0;
-        
-        for (int x = 0; x < maskedCanvas.Size; ++x)
-        {
-            int y = 0;
-            while (y < maskedCanvas.Size)
-            {
-                switch (maskedCanvas.GetBit((x, y)).Value)
-                {
-                    case CanvasBitValue.False:
-                        if (!TryMatchWhitePattern((x, y), out int? failedAt))
-                        {
-                            y = failedAt!.Value;
-                            continue;
-                        }
 
-                        y += 4;
-                        if (!TryMatchBlackWhitePattern((x, y), out failedAt))
-                        {
-                            y = failedAt!.Value;
-                            continue;
-                        }
-
-                        y += 7;
-                        ++numberOfStripes;
-                        break;
-                    
-                    case CanvasBitValue.True:
-                        if (!TryMatchBlackWhitePattern((x, y), out failedAt))
-                        {
-                            y = failedAt!.Value;
-                            continue;
-                        }
-
-                        y += 7;
-                        if (!TryMatchWhitePattern((x, y), out failedAt))
-                        {
-                            y = failedAt!.Value;
-                            continue;
-                        }
-
-                        y += 4;
-                        ++numberOfStripes;
-                        break;
-                    
-                    default:
-                        ++y;
-                        break;
-                }
-            }
-        }
-        return numberOfStripes * 40;
-        
-        bool TryMatchWhitePattern((int X, int Y) startPosition, out int? failedAt)
-        {
-            failedAt = null;
-            if (startPosition.Y + 4 >= maskedCanvas.Size)
-            {
-                failedAt = maskedCanvas.Size;
-                return false;
-            }
-            
-            for (int i = startPosition.Y; i < startPosition.Y + 4; ++i)
-            {
-                if (maskedCanvas.GetBit((startPosition.X, i)).Value is CanvasBitValue.False) 
-                { continue; }
-                
-                failedAt = i;
-                return false;
-            }
-
-            return true;
-        }
-
-        bool TryMatchBlackWhitePattern((int X, int Y) startPosition, out int? failedAt)
-        {
-            failedAt = null;
-            if (startPosition.Y + 7 >= maskedCanvas.Size)
-            {
-                failedAt = maskedCanvas.Size;
-                return false;
-            }
-            
-            CanvasBitValue[] pattern = [CanvasBitValue.True, CanvasBitValue.False, CanvasBitValue.True, CanvasBitValue.True, CanvasBitValue.True, CanvasBitValue.False, CanvasBitValue.True];
-            for (int i = 0; i < 7; ++i)
-            {
-                if (maskedCanvas.GetBit((startPosition.X, startPosition.Y + i)).Value == pattern[i]) 
-                { continue; }
-                
-                failedAt = startPosition.Y + i;
-                return false;
-            }
-
-            return true;
-        }
-    }
-    
     
     private int CountRatioPenalty(QRCanvas maskedCanvas)
     {

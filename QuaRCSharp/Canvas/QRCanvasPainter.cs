@@ -89,7 +89,7 @@ public class QRCanvasPainter
     public QRCanvasPainter ApplyBestMask()
     {
         MaskDeterminer maskApplier = new MaskDeterminer();
-        QRCanvas masked = maskApplier.ApplyBestMask(Canvas);
+        MaskedQRCanvas masked = maskApplier.ApplyBestMask(Canvas);
 
         _canvas = masked;
         return this;
